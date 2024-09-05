@@ -1,0 +1,283 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model company {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  name             String?      @db.VarChar(255)
+  office_location          String      @db.VarChar(255)
+  address          String      @db.VarChar(255)
+  region           String      @db.VarChar(255)
+  po_box           String      @db.VarChar(255)
+  website          String      @db.VarChar(255)
+  phone_number     String       @unique(map: "users_phone_number_unique") @db.VarChar(255)
+  fax              String       @unique(map: "users_fax_number_unique") @db.VarChar(255)
+  email            String       @unique(map: "users_email_unique") @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  status           Int          @default(0)
+  archive          Int          @default(0)
+  created_by       String?      @db.VarChar(255)
+  updated_by       String?      @db.VarChar(255)
+  users            users[]
+}
+
+model users {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  name             String      @db.VarChar(255)
+  phone_number     String       @unique(map: "users_phone_number_unique") @db.VarChar(255)
+  email            String       @unique(map: "users_email_unique") @db.VarChar(255)
+  password         String     @db.VarChar(255)
+  remember_me_code String?    @db.VarChar(100)
+  role             String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  status           Int          @default(0)
+  archive          Int          @default(0)
+  created_by       String?      @db.VarChar(255)
+  updated_by       String?      @db.VarChar(255)
+  company_id       String?           @db.VarChar(255)
+  applications     applications[]
+  control_numbers  control_numbers[]
+  license          license[]
+  comments         comments[]
+  assignees         assignees[]
+  recommendations  recommendations[]
+  additionals      additionals[]
+  company          company?        @relation(fields: [company_id], references: [id], onUpdate: Restrict, map: "user_company_id_foreign")
+  @@index([company_id], map: "user_company_id_foreign")
+}
+
+
+model applications {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  trackNumber      String       @db.VarChar(255)
+  license_type_id  String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  status           String       @default("PENDING")
+  archive          Int          @default(0)
+  marketValue      BigInt          
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  user_id          String       @db.VarChar(255)
+  users            users        @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "application_user_id_foreign")
+  license_types    license_types     @relation(fields: [license_type_id], references: [id], onUpdate: Restrict, map: "application_license_type_id_foreign")
+  attachments      attachments[]
+  report           reports?
+  comments         comments[]
+  control_numbers  control_numbers[]
+  assignees        assignees[]
+  license        license[]
+  previous_assignee_id String?
+  recommendations  recommendations[]
+  additionals      additionals[]
+  @@index([user_id], map: "application_user_id_foreign")
+  @@index([license_type_id], map: "application_license_type_id_foreign")
+}
+
+model reports {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  name             String       @db.VarChar(255)
+  file             String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  application_id   String       @db.VarChar(255) @unique
+  applications            applications        @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "application_report_id_foreign")
+  @@index([application_id], map: "application_report_id_foreign")
+}
+
+model payments {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  invoice_number   String       @db.VarChar(255)
+  description      String       @db.VarChar(255)      
+  amount           Int          
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  control_number_id String?       @db.VarChar(255)
+  control_numbers  control_numbers? @relation(fields: [control_number_id], references: [id], onUpdate: Restrict, map: "control_number_payment_id_foreign")
+  @@index([control_number_id], map: "control_number_payment_id_foreign")
+}
+
+model control_numbers {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  control_number   String?      @unique(map: "control_number_unique") @db.VarChar(255)
+  description      String       @db.VarChar(255)      
+  total_amount     Int?         // Nullable to allow setting it after payments are added
+  payment_status   String       @default("NOT_PAID")
+  payment_time     DateTime?    @db.Timestamp(0)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  payments         payments[]
+  user_id          String       @db.VarChar(255)
+  users            users        @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "control_number_user_id_foreign")
+  application_id   String       @db.VarChar(255)
+  applications     applications @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "application_control_number_id_foreign")
+  @@index([application_id], map: "application_control_number_id_foreign")
+}
+
+
+model attachments {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  file             String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  application_id   String       @db.VarChar(255)
+  attachment_type_id   String   @db.VarChar(255)
+  compliance       String?      @db.VarChar(255)
+
+  attachment_types attachment_types @relation(fields: [attachment_type_id], references: [id], onUpdate: Restrict, map: "attachment_type_attachement_id_foreign")
+  applications            applications        @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "application_attachement_id_foreign")
+  @@index([application_id], map: "application_attachemnt_id_foreign")
+  @@index([attachment_type_id], map: "attachment_type_attachemnt_id_foreign")
+}
+model attachment_types {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  name             String       @db.VarChar(500)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  license_type_id  String       @db.VarChar(255)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  attachments      attachments[]
+  license_types    license_types     @relation(fields: [license_type_id], references: [id], onUpdate: Restrict, map: "attachment_type_license_type_id_foreign")
+  @@index([license_type_id], map: "attachment_type_license_type_id_foreign")
+}
+
+model assignees {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  application_id   String       @db.VarChar(255)
+  applications            applications        @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "application_assignee_id_foreign")
+  @@index([application_id], map: "application_assignee_id_foreign")
+  user_id          String       @db.VarChar(255)
+  users            users        @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "assignees_user_id_foreign")
+  @@index([user_id], map: "assignees_user_id_foreign")
+}
+
+model comments {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  comment            String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  application_id   String       @db.VarChar(255)
+  applications            applications        @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "application_comment_id_foreign")
+  @@index([application_id], map: "application_comment_id_foreign")
+  user_id          String       @db.VarChar(255)
+  users            users        @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "comment_user_id_foreign")
+  @@index([user_id], map: "comment_user_id_foreign")
+}
+
+
+model recommendations {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  recommendation           String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  application_id   String       @db.VarChar(255)
+  applications            applications        @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "application_recommendation_id_foreign")
+  @@index([application_id], map: "application_recommendation_id_foreign")
+  user_id          String       @db.VarChar(255)
+  users            users        @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "recommendation_user_id_foreign")
+  @@index([user_id], map: "recommendation_user_id_foreign")
+}
+
+model additionals {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  info             String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  application_id   String       @db.VarChar(255)
+  applications     applications @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "application_additional_id_foreign")
+  @@index([application_id], map: "application_additional_id_foreign")
+  user_id          String       @db.VarChar(255)
+  users            users        @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "additional_user_id_foreign")
+  @@index([user_id], map: "additional_user_id_foreign")
+}
+
+model license {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  license_type_id  String       @db.VarChar(255)
+  type             Int          @default(1)
+  issued_at        DateTime                     
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  status           Int          @default(1)
+  archive          Int          @default(0)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  user_id          String       @db.VarChar(255)
+  application_id          String       @db.VarChar(255)
+  users            users        @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "license_user_id_foreign")
+  applications     applications        @relation(fields: [application_id], references: [id], onUpdate: Restrict, map: "license_application_id_foreign")
+  license_types    license_types     @relation(fields: [license_type_id], references: [id], onUpdate: Restrict, map: "license_license_type_id_foreign")
+  @@index([user_id], map: "license_user_id_foreign")
+  @@index([application_id], map: "license_application_id_foreign")
+  @@index([license_type_id], map: "license_license_type_id_foreign")
+}
+
+
+model license_types {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  name             String       @unique(map: "license_type_unique") @db.VarChar(255)
+  created_by       String       @db.VarChar(255)
+  updated_by       String       @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  archive          Int          @default(0)
+  applications     applications[]
+  license          license[]
+  attachment_types          attachment_types[]
+}
+
+
+model roles {
+  id               String       @id @default(cuid()) @db.VarChar(255)
+  name             String?      @db.VarChar(255)
+  created_at       DateTime     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime     @default(now()) @db.Timestamp(0)
+  status           Int          @default(1)
+  archive          Int          @default(0)
+  created_by       String?      @db.VarChar(255)
+  updated_by       String?      @db.VarChar(255)
+}
+
+
+//other field for applications
